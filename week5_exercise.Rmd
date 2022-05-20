@@ -25,9 +25,8 @@ library(tmap)
 ## Load data as an sf-object
 ```{r}
 
-wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") %>%
+wildschwein <- read_delim("wildschwein_BE_2056.csv",",") %>%
   st_as_sf(coords = c("E", "N"), crs = 2056, remove = FALSE)
-
 
 ```
 
@@ -57,6 +56,38 @@ feldaufnahmen
 ```
 
 
+## Task 2: Annotate Trajectories from vector data
+what crop was visited by which wild boar, and at what time
+```{r}
+
+#filter wildboar data to may to june (crop data is most relevant in summer), save output to new variable
+
+#Anlegen convenience-Variable 'month'
+wildschwein$month <- month(wildschwein$DatetimeUTC) #einfache Variante um convenience-Variable anzulegen
+
+#alternativ mit mutate
+#wildschwein %>%
+#  mutate(month ???? )
+
+#Filter auf Monate Mai und Juni
+wildschwein_sommer <- wildschwein %>%
+  filter(month == 05 | month == 06)
+
+#folgende Variante ist viiiiieeeel zu umständlich
+#wildschwein_sommer2015 <- wildschwein %>%
+#  filter(DatetimeUTC >= as.POSIXct("2015-05-01", tz = "UTC") & DatetimeUTC <= #as.POSIXct("2015-06-30", tz = "UTC"))
+
+#wildschein_summer2014 <- wildschwein %>%
+#    filter(DatetimeUTC >= as.POSIXct("2014-05-01 ", tz = "UTC") & DatetimeUTC <= #as.POSIXct("2014-06-30", tz = "UTC"))
+
+
+
+#Overlay the filtered dataset with your fanel data to verify the spatial overlap
+#To sematically annotate wildboar locations with crop information, use a spatial join
+
+wildschwein_overlay <- st_join(wildschwein_sommer, feldaufnahmen) 
+
+```
 
 
 
