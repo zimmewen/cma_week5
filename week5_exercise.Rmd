@@ -22,12 +22,37 @@ library(tmap)
 
 ```
 
-## Load data
+## Load data as an sf-object
 ```{r}
 
+wildschwein_BE <- read_delim("wildschwein_BE_2056.csv",",") %>%
+  st_as_sf(coords = c("E", "N"), crs = 2056, remove = FALSE)
 
 
+```
 
+
+## Tasks 1: Import and visualize spatial data
+```{r}
+
+feldaufnahmen <- read_sf("Feldaufnahmen_Fanel.gpkg")
+
+#What information does the dataset contain?
+feldaufnahmen
+#Geometrie: Polygon
+#Projektion: Landeskoordinaten
+#975 Zeilen, 3 Attribute
+#...
+
+#What is the geometry type of the dataset (possible types are: Point, Lines and Polygons)?
+#Polygons
+
+#What are the data types of the other columns?
+#FieldID: double (Nummer des Feldes)
+#geom: Koordinaten
+
+#What is the coordinate system of the dataset?
+#Landeskoordinaten
 
 ```
 
