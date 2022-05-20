@@ -1,0 +1,38 @@
+---
+title: "week5_exercise"
+author: "Wenke Zimmermann"
+date: "2022-05-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries ###
+```{r message=FALSE, warning= FALSE}
+library(readr)
+library(udunits2)
+library(sf)
+library(terra)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(tmap)
+
+```
+
+## Load data
+```{r}
+
+
+
+
+
+```
+
+
+
+
+
+
