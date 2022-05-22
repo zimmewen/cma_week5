@@ -5,10 +5,6 @@ date: "2022-05-21"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ## Libraries ###
 ```{r message=FALSE, warning= FALSE}
 library(readr)
@@ -23,7 +19,7 @@ library(tmap)
 ```
 
 ## Load data as an sf-object
-```{r}
+```{r message=FALSE, warning= FALSE}
 
 wildschwein <- read_delim("wildschwein_BE_2056.csv",",") %>%
   st_as_sf(coords = c("E", "N"), crs = 2056, remove = FALSE)
@@ -32,7 +28,7 @@ wildschwein <- read_delim("wildschwein_BE_2056.csv",",") %>%
 
 
 ## Tasks 1: Import and visualize spatial data
-```{r}
+```{r message=FALSE, warning= FALSE}
 
 feldaufnahmen <- read_sf("Feldaufnahmen_Fanel.gpkg")
 
@@ -58,9 +54,8 @@ feldaufnahmen
 
 ## Task 2: Annotate Trajectories from vector data
 what crop was visited by which wild boar, and at what time
-```{r}
-
-#filter wildboar data to may to june (crop data is most relevant in summer), save output to new variable
+filter wildboar data to may to june (crop data is most relevant in summer), save output to new variable
+```{r message=FALSE, warning= FALSE}
 
 #Anlegen convenience-Variable 'month'
 wildschwein$month <- month(wildschwein$DatetimeUTC) #einfache Variante um convenience-Variable anzulegen
@@ -68,6 +63,7 @@ wildschwein$month <- month(wildschwein$DatetimeUTC) #einfache Variante um conven
 #alternativ mit mutate
 #wildschwein %>%
 #  mutate(month ???? )
+
 
 #Filter auf Monate Mai und Juni
 wildschwein_sommer <- wildschwein %>%
@@ -90,5 +86,69 @@ wildschwein_overlay <- st_join(wildschwein_sommer, feldaufnahmen)
 ```
 
 
+## Task 3: Explore annotated trajectories
+Think of ways you could visually explore the spatio-temporal patterns of wild boar in relation to the crops. In our example below we visualize the percentage of samples in a given crop per hour.
+```{r message=FALSE, warning= FALSE}
+
+wildschwein_overlay$time <- 
+  hour(wildschwein_overlay$DatetimeUTC)
+
+#alternativ mit mutate
+#wildschwein_overlay %>%
+#  mutate(timeRound = round_date(DatetimeUTC, unit = "1 hour"))
+
+
+wildschwein_sry <- wildschwein_overlay %>%
+  group_by(TierName, Frucht) %>%
+  summarise(Summe = sum(time))
+
+
+
+ggplot()+
+  geom_bar(wildschwein_sry) +
+  facet_wrap(~TierName)
+
+ 
+
+y = (value)/sum(value)
+y = Frucht/sum(Frucht)
+
+plot_data = mdat %>% group_by(group, variable) %>% summarise(total = sum(value))
+
+ggplot(wildschwein_sry, aes(fill = Frucht)) +  
+  geom_bar(aes(x = time, 
+               y = (Frucht)/sum(Frucht)), 
+               stat = "identity", 
+               position = "dodge") + 
+  scale_y_continuous(labels = scales::percent) + 
+  xlab("Time (Rounded to neares hour") + 
+  ylab("Percentage")
+
+
+
+```
+
+
+
+## Task 4: Import and visualize vegetationindex (raster data)
+Import this dataset vegetationshoehe_LFI.tif
+It's a prepared Vegetation Height Model provided by the Swiss National Forest Inventory (NFI) and contains high resolution information (1x1 Meter) on the vegetation height, which is determined from the difference between the digital surface models DSM and the digital terrain model by swisstopo (swissAlti3D). Buildings are eliminated using a combination of the ground areas of the swisstopo topographic landscape model (TLM) and spectral information from the stereo aerial photos.
+```{r message=FALSE, warning= FALSE}
+
+#Import tif-data
+vegetation <- terra::rast("vegetationshoehe_LFI.tif")
+
+
+#Visualize the raster data using tmap (ggplot is too slow for raster data)
+plot(vegetation)
+
+
+## Task 5: Adding a background map (library tmap)
+tm_shape(vegetation)+
+  tm_raster()
+#Raster wurde autoamtische gedownsampelt
+#Farbe ist gelb anstatt blau
+
+```
 
 
