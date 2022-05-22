@@ -7,6 +7,7 @@ output: html_document
 
 ## Libraries ###
 ```{r message=FALSE, warning= FALSE}
+
 library(readr)
 library(udunits2)
 library(sf)
@@ -53,76 +54,72 @@ feldaufnahmen
 
 
 ## Task 2: Annotate Trajectories from vector data
-what crop was visited by which wild boar, and at what time
-filter wildboar data to may to june (crop data is most relevant in summer), save output to new variable
+what crop was visited by which wild boar, and at what time; filter wildboar data to may to june (crop data is most relevant in summer), save output to new variable
 ```{r message=FALSE, warning= FALSE}
 
-#Anlegen convenience-Variable 'month'
-wildschwein$month <- month(wildschwein$DatetimeUTC) #einfache Variante um convenience-Variable anzulegen
+#Anlegen einer convenience-Variable, die die Monate enthält
+wildschwein  <- wildschwein %>%
+    mutate(month = month(DatetimeUTC))
 
-#alternativ mit mutate
-#wildschwein %>%
-#  mutate(month ???? )
+#alternativ
+#wildschwein$month <- month(wildschwein$DatetimeUTC) #sehr einfache Variante um convenience-Variable anzulegen
 
 
 #Filter auf Monate Mai und Juni
-wildschwein_sommer <- wildschwein %>%
+wildschwein_filter <- wildschwein %>%
   filter(month == 05 | month == 06)
 
 #folgende Variante ist viiiiieeeel zu umständlich
-#wildschwein_sommer2015 <- wildschwein %>%
-#  filter(DatetimeUTC >= as.POSIXct("2015-05-01", tz = "UTC") & DatetimeUTC <= #as.POSIXct("2015-06-30", tz = "UTC"))
-
-#wildschein_summer2014 <- wildschwein %>%
-#    filter(DatetimeUTC >= as.POSIXct("2014-05-01 ", tz = "UTC") & DatetimeUTC <= #as.POSIXct("2014-06-30", tz = "UTC"))
-
+#wildschwein_filter <- wildschwein %>%
+#  filter(DatetimeUTC >= as.POSIXct("2015-05-01", tz = "UTC") & DatetimeUTC <= #as.POSIXct("2015-06-30", tz = "UTC")) |
+#  filter(DatetimeUTC >= as.POSIXct("2014-05-01 ", tz = "UTC") & DatetimeUTC <= #as.POSIXct("2014-06-30", tz = "UTC"))
 
 
 #Overlay the filtered dataset with your fanel data to verify the spatial overlap
 #To sematically annotate wildboar locations with crop information, use a spatial join
 
-wildschwein_overlay <- st_join(wildschwein_sommer, feldaufnahmen) 
+wildschwein_crop_overlay <- st_join(wildschwein_filter, feldaufnahmen)
 
 ```
 
 
 ## Task 3: Explore annotated trajectories
-Think of ways you could visually explore the spatio-temporal patterns of wild boar in relation to the crops. In our example below we visualize the percentage of samples in a given crop per hour.
+Think of ways you could visually explore the spatio-temporal patterns of wild boar in relation to the crops.
 ```{r message=FALSE, warning= FALSE}
 
-wildschwein_overlay$time <- 
-  hour(wildschwein_overlay$DatetimeUTC)
+#neue Variable, die nur Stunden anzeigt (einfache Variante von oben)
+wildschwein_crop_overlay$time <- 
+  hour(wildschwein_crop_overlay$DatetimeUTC)
 
 #alternativ mit mutate
-#wildschwein_overlay %>%
-#  mutate(timeRound = round_date(DatetimeUTC, unit = "1 hour"))
+#wildschwein_crop_overlay %>%
+#  mutate(time = round_date(DatetimeUTC, unit = "1 hour"))
 
 
-wildschwein_sry <- wildschwein_overlay %>%
-  group_by(TierName, Frucht) %>%
-  summarise(Summe = sum(time))
+#Zähle Häufigkeit je Anzahl crop-Typ
+wildschwein_crop_overlay <- wildschwein_crop_overlay %>%
+  add_count(Frucht)  #fügt neue Spalte ein, die jeweilige Gesamt-Zahl enthält
 
 
 
-ggplot()+
-  geom_bar(wildschwein_sry) +
+
+
+
+
+
+#Visualisiere Option 1 (das mit der Frucht funzt noch nicht!!!)
+ggplot(wildschwein_crop_overlay, aes(x = time)) +
+  geom_bar() + 
+  scale_y_continuous(labels = scales::percent) +
+  xlab("Time (Rounded to the nearest hour)") + 
+  ylab("Percentage") +
   facet_wrap(~TierName)
 
- 
 
-y = (value)/sum(value)
-y = Frucht/sum(Frucht)
 
-plot_data = mdat %>% group_by(group, variable) %>% summarise(total = sum(value))
+            
 
-ggplot(wildschwein_sry, aes(fill = Frucht)) +  
-  geom_bar(aes(x = time, 
-               y = (Frucht)/sum(Frucht)), 
-               stat = "identity", 
-               position = "dodge") + 
-  scale_y_continuous(labels = scales::percent) + 
-  xlab("Time (Rounded to neares hour") + 
-  ylab("Percentage")
+
 
 
 
@@ -131,8 +128,7 @@ ggplot(wildschwein_sry, aes(fill = Frucht)) +
 
 
 ## Task 4: Import and visualize vegetationindex (raster data)
-Import this dataset vegetationshoehe_LFI.tif
-It's a prepared Vegetation Height Model provided by the Swiss National Forest Inventory (NFI) and contains high resolution information (1x1 Meter) on the vegetation height, which is determined from the difference between the digital surface models DSM and the digital terrain model by swisstopo (swissAlti3D). Buildings are eliminated using a combination of the ground areas of the swisstopo topographic landscape model (TLM) and spectral information from the stereo aerial photos.
+The dataset vegetationshoehe_LFI.tif is a prepared Vegetation Height Model provided by the Swiss National Forest Inventory (NFI) and contains high resolution information (1x1 Meter) on the vegetation height, which is determined from the difference between the digital surface models DSM and the digital terrain model by swisstopo (swissAlti3D). Buildings are eliminated using a combination of the ground areas of the swisstopo topographic landscape model (TLM) and spectral information from the stereo aerial photos.
 ```{r message=FALSE, warning= FALSE}
 
 #Import tif-data
@@ -146,9 +142,27 @@ plot(vegetation)
 ## Task 5: Adding a background map (library tmap)
 tm_shape(vegetation)+
   tm_raster()
-#Raster wurde autoamtische gedownsampelt
+#Raster wurde automatisch gedownsampelt
 #Farbe ist gelb anstatt blau
 
 ```
 
 
+## Task 5: Annotate Trajectories from raster data
+Semantically annotate your wildboar locations with the vegetation index.
+```{r message=FALSE, warning= FALSE}
+
+#Since you are annotating a vector dataset with information from a raster dataset, you cannot use st_join but need the function extract from the terra package
+
+#?terra::extract
+
+
+wildschwein_vegetation_overlay <- terra::extract(vegetation, wildschwein)
+
+#funktioniert nicht
+ 
+
+
+
+
+```
