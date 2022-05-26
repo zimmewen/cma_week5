@@ -58,8 +58,7 @@ what crop was visited by which wild boar, and at what time; filter wildboar data
 ```{r message=FALSE, warning= FALSE}
 
 #Anlegen einer convenience-Variable, die die Monate enthält
-wildschwein  <- wildschwein %>%
-    mutate(month = month(DatetimeUTC))
+wildschwein  <- mutate(wildschwein, month = month(DatetimeUTC))
 
 #alternativ
 #wildschwein$month <- month(wildschwein$DatetimeUTC) #sehr einfache Variante um convenience-Variable anzulegen
@@ -87,28 +86,39 @@ wildschwein_crop_overlay <- st_join(wildschwein_filter, feldaufnahmen)
 Think of ways you could visually explore the spatio-temporal patterns of wild boar in relation to the crops.
 ```{r message=FALSE, warning= FALSE}
 
-#neue Variable, die nur Stunden anzeigt (einfache Variante von oben)
-wildschwein_crop_overlay$time <- 
-  hour(wildschwein_crop_overlay$DatetimeUTC)
 
-#alternativ mit mutate
-#wildschwein_crop_overlay %>%
-#  mutate(time = round_date(DatetimeUTC, unit = "1 hour"))
+#Zähle Häufigkeit je Anzahl crop-Typ
+wildschwein_crop_overlay %>%
+  add_count(Frucht)
+
+
+wildschwein_crop_overlay %>%
+  mutate(wildschwein_crop_overlay, AnzFrucht = count(Frucht))
+
+
+wildschwein_crop_overlay %>%
+  group_by(Frucht) %>%
+  summarise(AnzFruch = n())
+
+
+
+
+
+
+#neue Variable mit gerundeten Stunden
+wildschwein_crop_overlay <- wildschwein_crop_overlay %>%
+  mutate(time = round_date(DatetimeUTC, unit = "1 hour"))
 
 
 #Zähle Häufigkeit je Anzahl crop-Typ
-wildschwein_crop_overlay <- wildschwein_crop_overlay %>%
-  add_count(Frucht)  #fügt neue Spalte ein, die jeweilige Gesamt-Zahl enthält
-
-
-
-
-
-
-
+wildschwein_crop_sum <- wildschwein_crop_overlay %>%
+  group_by(Frucht) %>%
+  summarise(AnzFruch = n())
+  
+  
 
 #Visualisiere Option 1 (das mit der Frucht funzt noch nicht!!!)
-ggplot(wildschwein_crop_overlay, aes(x = time)) +
+ggplot(wildschwein_crop_overlay, aes(x = time, y = Frucht)) +
   geom_bar() + 
   scale_y_continuous(labels = scales::percent) +
   xlab("Time (Rounded to the nearest hour)") + 
@@ -117,7 +127,28 @@ ggplot(wildschwein_crop_overlay, aes(x = time)) +
 
 
 
-            
+
+
+
+
+#wildboar_crop$Frucht <- str_replace(wildboar_crop$Frucht, #"Acker|Bohnen|Brache|Chinaschilf|Karotten|Kartoffeln|Kohl|Kohlrabi|Kuerbis|Mais|Mangold|Raps|Rhabarber|Roggen|Salat|Sellerie|Weide|Weizen|Wiese#|Zwiebeln", "other")
+
+
+#Visually exploring the spatio-temporal patterns of wild boar in relation to the crops
+
+#wildboar_crop$Frucht <- as.factor(wildboar_crop$Frucht)
+
+#wildboar_Sum <- wildboar_crop %>%
+#group_by(TierName, Frucht, time) %>%
+#summarise(Percentage = n())
+#wildboar_Sum
+
+#wildboar_Sum %>%
+#ggplot(aes(x = time, y = Percentage, fill = Frucht)) +
+#geom_col() +
+#scale_y_continuous(labels = scales::percent) +
+#facet_wrap(~TierName)
+
 
 
 
