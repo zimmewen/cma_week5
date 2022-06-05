@@ -86,72 +86,72 @@ wildschwein_crop_overlay <- st_join(wildschwein_filter, feldaufnahmen)
 Think of ways you could visually explore the spatio-temporal patterns of wild boar in relation to the crops.
 ```{r message=FALSE, warning= FALSE}
 
+#Versuch zur Darstellung, der nicht bis zum Ende funktionierte
 
 #Zähle Häufigkeit je Anzahl crop-Typ
-wildschwein_crop_overlay %>%
-  add_count(Frucht)
+#wildschwein_crop_overlay %>%
+#  add_count(Frucht)
 
+#wildschwein_crop_overlay %>%
+#  mutate(wildschwein_crop_overlay, AnzFrucht = count(Frucht))
 
-wildschwein_crop_overlay %>%
-  mutate(wildschwein_crop_overlay, AnzFrucht = count(Frucht))
-
-
-wildschwein_crop_overlay %>%
-  group_by(Frucht) %>%
-  summarise(AnzFruch = n())
-
-
-
-
-
+#wildschwein_crop_overlay %>%
+#  group_by(Frucht) %>%
+#  summarise(AnzFruch = n())
 
 #neue Variable mit gerundeten Stunden
-wildschwein_crop_overlay <- wildschwein_crop_overlay %>%
-  mutate(time = round_date(DatetimeUTC, unit = "1 hour"))
-
+#wildschwein_crop_overlay <- wildschwein_crop_overlay %>%
+#  mutate(time = round_date(DatetimeUTC, unit = "1 hour"))
 
 #Zähle Häufigkeit je Anzahl crop-Typ
-wildschwein_crop_sum <- wildschwein_crop_overlay %>%
-  group_by(Frucht) %>%
-  summarise(AnzFruch = n())
+#wildschwein_crop_sum <- wildschwein_crop_overlay %>%
+#  group_by(Frucht) %>%
+#  summarise(AnzFruch = n())
   
-  
-
 #Visualisiere Option 1 (das mit der Frucht funzt noch nicht!!!)
-ggplot(wildschwein_crop_overlay, aes(x = time, y = Frucht)) +
-  geom_bar() + 
-  scale_y_continuous(labels = scales::percent) +
-  xlab("Time (Rounded to the nearest hour)") + 
-  ylab("Percentage") +
-  facet_wrap(~TierName)
+#ggplot(wildschwein_crop_overlay, aes(x = time, y = Frucht)) +
+#  geom_bar() + 
+#  scale_y_continuous(labels = scales::percent) +
+#  xlab("Time (Rounded to the nearest hour)") + 
+#  ylab("Percentage") +
+#  facet_wrap(~TierName)
 
 
 
+# Alternative von Nils
+library(forcats)  #zum Handling von Factors
+
+wildschwein_smry <- wildschwein_crop_overlay %>%
+  st_set_geometry(NULL) %>%
+  mutate(
+    hour = hour(round_date(DatetimeUTC,"hour")),
+    Frucht = ifelse(is.na(Frucht),"other",Frucht),
+    Frucht = fct_lump(Frucht, 5, other_level = "other"),
+  ) %>%
+  group_by(TierName, hour, Frucht) %>%
+  count() %>%
+  ungroup() %>%
+  group_by(TierName , hour) %>%
+  mutate(perc = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(
+    Frucht = fct_reorder(Frucht, n,sum, desc = TRUE)
+  )
 
 
+p1 <- ggplot(wildschwein_smry, aes(hour,perc, fill = Frucht)) +
+  geom_col(width = 1) +
+  scale_y_continuous(name = "Percentage", labels = scales::percent_format()) +
+  scale_x_continuous(name = "Time (rounded to the nearest hour)") +
+  facet_wrap(~TierName ) +
+  theme_light() +
+  labs(title = "Percentages of samples in a given crop per hour",subtitle = "Only showing the most common categories")
 
+p1
 
-#wildboar_crop$Frucht <- str_replace(wildboar_crop$Frucht, #"Acker|Bohnen|Brache|Chinaschilf|Karotten|Kartoffeln|Kohl|Kohlrabi|Kuerbis|Mais|Mangold|Raps|Rhabarber|Roggen|Salat|Sellerie|Weide|Weizen|Wiese#|Zwiebeln", "other")
-
-
-#Visually exploring the spatio-temporal patterns of wild boar in relation to the crops
-
-#wildboar_crop$Frucht <- as.factor(wildboar_crop$Frucht)
-
-#wildboar_Sum <- wildboar_crop %>%
-#group_by(TierName, Frucht, time) %>%
-#summarise(Percentage = n())
-#wildboar_Sum
-
-#wildboar_Sum %>%
-#ggplot(aes(x = time, y = Percentage, fill = Frucht)) +
-#geom_col() +
-#scale_y_continuous(labels = scales::percent) +
-#facet_wrap(~TierName)
-
-
-
-
+p1 +
+  coord_polar()  +
+  labs(caption = "Same visualization as above, displayed in a polar plot")
 
 
 ```
@@ -176,6 +176,12 @@ tm_shape(vegetation)+
 #Raster wurde automatisch gedownsampelt
 #Farbe ist gelb anstatt blau
 
+
+# Alternativ von Nils
+tm_shape(vegetation) + 
+  tm_raster(palette = "viridis",style = "cont", legend.is.portrait = FALSE) +
+  tm_layout(legend.outside = TRUE,legend.outside.position = "bottom", frame = FALSE)
+
 ```
 
 
@@ -185,15 +191,12 @@ Semantically annotate your wildboar locations with the vegetation index.
 
 #Since you are annotating a vector dataset with information from a raster dataset, you cannot use st_join but need the function extract from the terra package
 
-#?terra::extract
+#Variante von Nils
+wildschwein_vegetation_overlay <- terra::extract(vegetation, st_coordinates(wildschwein))
 
+wildschwein <- cbind(wildschwein, wildschwein_vegetation_overlay)
 
-wildschwein_vegetation_overlay <- terra::extract(vegetation, wildschwein)
-
-#funktioniert nicht
- 
-
-
+wildschwein
 
 
 ```
